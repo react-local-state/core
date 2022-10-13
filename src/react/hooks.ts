@@ -92,7 +92,7 @@ export function useLocalStateWithContext<KeysType>(
     (async () => {
       setLoading(true);
       const readValues = await localState.multiGet(keysArray);
-      setValue(Object.assign({}, readValues, setters));
+      setValue(Object.assign({}, readValues, setters, removers));
       setLoading(false);
     })();
   }, keysArray);
