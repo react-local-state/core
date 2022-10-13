@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useContext ,useRef } from 'react';
 
-import { LocalStateMultiReadResult, LocalStateMultiSetters } from '../types';
+import { LocalStateMulti } from '../types';
 import { LocalState } from '../LocalState';
 
 type MaybeCleanUpFn = void | (() => void);
@@ -40,7 +40,7 @@ function useArrayEffect<T>(callback: () => MaybeCleanUpFn, deps: T[]) {
 export function useLocalStateWithContext<KeysType>(
   context: React.Context<LocalState<KeysType>>, 
   keys: string & keyof KeysType | (string & keyof KeysType)[],
-): [LocalStateMultiReadResult<KeysType> & LocalStateMultiSetters<KeysType>, boolean] {
+): [LocalStateMulti<KeysType>, boolean] {
   const localState = useContext(context);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +50,12 @@ export function useLocalStateWithContext<KeysType>(
 
   const setters = useMemo(() => keysArray.reduce((acc, key) => {
     const setterKey = `set${capitalizeFirstLetter(key)}`;
-    return {...acc, [setterKey]: async (value: any) => localState.set(key, value)};
+    return {...acc, [setterKey]: async (value: any) => localState.set(key, value)}; // FIXME callback should have known value type
+  }, {}), [keysArray]);
+
+  const removers = useMemo(() => keysArray.reduce((acc, key) => {
+    const removerKey = `remove${capitalizeFirstLetter(key)}`;
+    return {...acc, [removerKey]: async () => localState.remove(key)};
   }, {}), [keysArray]);
 
   const defaultGetters = useMemo(() => keysArray.reduce((acc, getterKey) => {
@@ -58,7 +63,7 @@ export function useLocalStateWithContext<KeysType>(
   }, {}), [keysArray]);
 
   const [value, setValue] = useState(
-    Object.assign({}, defaultGetters, setters)
+    Object.assign({}, defaultGetters, setters, removers)
   );
 
   useArrayEffect(() => {

@@ -1,8 +1,13 @@
-import { LocalStateMultiReadResult } from '../LocalState';
+import { LocalStateMultiGetters } from '../types';
 import { LocalStateBackend } from '../LocalStateBackend';
 
 export class LocalStateMemoryBackend<KeysType> implements LocalStateBackend<KeysType> {
   private data = new Map<string & keyof KeysType, any>();
+
+  remove<Key extends string & keyof KeysType>(key: Key): Promise<void> {
+    this.data.delete(key);
+    return new Promise((resolve) => resolve());
+  }
   
   get<Key extends string & keyof KeysType>(key: Key): Promise<KeysType[Key]> {
     return new Promise((resolve) => resolve(this.data.get(key)));
@@ -15,11 +20,11 @@ export class LocalStateMemoryBackend<KeysType> implements LocalStateBackend<Keys
     });
   }
 
-  multiGet<Key extends string & keyof KeysType>(keys: Key[]): Promise<LocalStateMultiReadResult<KeysType>> {
+  multiGet<Key extends string & keyof KeysType>(keys: Key[]): Promise<LocalStateMultiGetters<KeysType>> {
     return new Promise((resolve) => {
-      const result = {};
+      const result: LocalStateMultiGetters<KeysType> = {};
       for(const key of keys) {
-        result[this.data.get(key)] = this.data.get(key);
+        result[key] = this.data.get(key);
       }
       resolve(result);
     });

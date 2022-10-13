@@ -1,7 +1,7 @@
 import { LocalStateBackend } from './LocalStateBackend';
-import { LocalStateMultiReadResult } from './types';
+import { LocalStateMultiGetters } from './types';
 
-type LocalStateSubscribeCallback<KeysType, Key extends string & keyof KeysType> = (newValue: KeysType[Key]) => void
+type LocalStateSubscribeCallback<KeysType, Key extends string & keyof KeysType> = (newValue: KeysType[Key] | undefined) => void;
 
 /**
  * Abstraction layer over settings stored locally on the client's device.
@@ -20,6 +20,22 @@ export class LocalState<KeysType> {
   }
 
   /**
+   * Removes a single key.
+   * 
+   * @param key A key to be read. 
+   * @returns A promise with a value or null if key was not found.
+   */
+  remove<Key extends string & keyof KeysType>(key: Key): Promise<void> {
+    return this.backend.remove(key).then(() => {
+      if(this.subscribers.has(key)) {
+        for(const callback of this.subscribers.get(key)!.values()) {
+          callback(undefined);
+        }
+      }
+    });
+  }
+  
+  /**
    * Reads a single key.
    * 
    * @param key A key to be read. 
@@ -36,7 +52,7 @@ export class LocalState<KeysType> {
    * @returns A promise with an object where keys are retreived keys and values 
    * are read values. Value is null if key was not found.
    */
-  multiGet<Key extends string & keyof KeysType>(keys: Key[]): Promise<LocalStateMultiReadResult<Key>> {
+  multiGet<Key extends string & keyof KeysType>(keys: Key[]): Promise<LocalStateMultiGetters<KeysType>> {
     return this.backend.multiGet(keys);
   }
 
