@@ -1,10 +1,5 @@
 import { LocalStateBackend } from './LocalStateBackend';
-
-// export type LocalStateMultiReadResult<KeyType> = { [key in KeyType]?: any}
-// export type LocalStateMultiSetters = { [key in LocalStateKey as `set${Capitalize<key>}`]?: (value: any) => Promise<void>}
-
-export type LocalStateMultiReadResult<KeyType> = { };
-export type LocalStateMultiSetters<KeyType> = { };
+import { LocalStateMultiReadResult } from './types';
 
 type LocalStateSubscribeCallback<KeysType, Key extends string & keyof KeysType> = (newValue: KeysType[Key]) => void
 

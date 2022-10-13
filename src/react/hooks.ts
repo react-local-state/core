@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useContext ,useRef } from 'react';
 
+import { LocalStateMultiReadResult, LocalStateMultiSetters } from '../types';
 import { LocalState } from '../LocalState';
 
 type MaybeCleanUpFn = void | (() => void);
@@ -39,14 +40,13 @@ function useArrayEffect<T>(callback: () => MaybeCleanUpFn, deps: T[]) {
 export function useLocalStateWithContext<KeysType>(
   context: React.Context<LocalState<KeysType>>, 
   keys: string & keyof KeysType | (string & keyof KeysType)[],
-): [{}, boolean] { // FIXME
+): [LocalStateMultiReadResult<KeysType> & LocalStateMultiSetters<KeysType>, boolean] {
   const localState = useContext(context);
   const [loading, setLoading] = useState(true);
 
   const keysArray = useMemo(() => 
     Array.isArray(keys) ? keys : [keys],
   [keys]);
-
 
   const setters = useMemo(() => keysArray.reduce((acc, key) => {
     const setterKey = `set${capitalizeFirstLetter(key)}`;
