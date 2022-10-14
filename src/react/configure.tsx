@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { LocalState } from '../LocalState';
+import { LocalStateAsync } from '../LocalStateAsync';
 import { LocalStateBackend } from '../LocalStateBackend';
 
 import { useLocalStateWithContext } from './hooks';
@@ -15,12 +15,13 @@ import { useLocalStateWithContext } from './hooks';
  * Put LocalStateProvider somewhere near the top in your App tree and
  * export returned useLocalState to other modules of your application.
  * 
- * @param backend instance of backend class
+ * @param backend optional instance of backend class responsible for
+ * data persistence
  * @returns an object with LocalStateProvider and useLocalState
  */
 export function configureLocalState<KeysType>(backend: LocalStateBackend<KeysType>) {
-  const localState = new LocalState(backend);
-  const LocalStateContext = createContext<LocalState<KeysType>>(localState);
+  const localState = new LocalStateAsync<KeysType>(backend);
+  const LocalStateContext = createContext<LocalStateAsync<KeysType>>(localState);
 
   const LocalStateProvider = ({ children }: { children: JSX.Element }): JSX.Element => (
     <LocalStateContext.Provider value={localState}>

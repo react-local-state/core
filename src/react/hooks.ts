@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useContext ,useRef } from 'react';
 
 import { LocalStateMulti } from '../types';
-import { LocalState } from '../LocalState';
+import { LocalState } from '../LocalStateAsync';
 
 type MaybeCleanUpFn = void | (() => void);
 

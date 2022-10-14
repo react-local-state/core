@@ -6,7 +6,6 @@ interface Keys {
   key2: boolean,
 }
 
-const [LocalStateProvider, useLocalState] = configureLocalState<Keys>(new LocalStateMemoryBackend());
-
+const { LocalStateProvider, useLocalState } = configureLocalState<Keys>(new LocalStateMemoryBackend<Keys>()); 
 export { LocalStateProvider, useLocalState };
 
