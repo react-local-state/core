@@ -30,7 +30,7 @@ export function configureLocalState<KeysType>(backend: LocalStateBackend<KeysTyp
   );
 
   const useLocalState = (keys: string & keyof KeysType | (string & keyof KeysType)[]) => {
-    return useLocalStateWithContext(LocalStateContext, keys);
+    return useLocalStateWithContext<KeysType>(LocalStateContext, keys);
   }
 
   return {
