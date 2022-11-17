@@ -1,4 +1,7 @@
-import { configureLocalState } from './src/react/configure';
+import { 
+  configureLocalStateAsync, 
+  configureLocalStateSync,
+} from './src/react/configure';
 import { LocalStateAsync } from './src/LocalStateAsync';
 import { LocalStateSync } from './src/LocalStateSync';
 import { 
@@ -11,7 +14,8 @@ import { LocalStateBackend } from './src/LocalStateBackend';
 import { LocalStateMemoryBackend } from './src/backends/LocalStateMemoryBackend';
 
 export { 
-  configureLocalState,
+  configureLocalStateAsync,
+  configureLocalStateSync,
   LocalStateSync,
   LocalStateAsync,
   LocalStateMultiGetters,

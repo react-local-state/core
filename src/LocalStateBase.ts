@@ -1,12 +1,15 @@
+export type LocalStateValueCallback<KeysType> = (newValue: KeysType[string & keyof KeysType] | undefined) => void
+
 type SubscriberRegistry<KeysType> = {
-  [Key in keyof KeysType]?: Map<number, (newValue: KeysType[Key] | undefined) => void>
+  [Key in keyof KeysType]?: Map<number, LocalStateValueCallback<KeysType>>
 }
+
 
 export abstract class LocalStateBase<KeysType> {
   private subscribers: SubscriberRegistry<KeysType> = {};
   private lastSubscriberId = 0;
   
-  protected notify<Key extends string & keyof KeysType>(key: Key, value: KeysType[Key] | undefined): void {
+  protected notifyValue<Key extends string & keyof KeysType>(key: Key, value: KeysType[Key] | undefined): void {
     if(this.subscribers.hasOwnProperty(key)) {
       for(const callback of this.subscribers[key]!.values()) {
         callback(value);
@@ -22,7 +25,7 @@ export abstract class LocalStateBase<KeysType> {
    * will be passed as an argument to the callback.
    * @returns A subscriber ID that can be used to unsubscribe.
    */
-  public subscribe<Key extends string & keyof KeysType>(key: Key, callback: (newValue: KeysType[Key] | undefined) => void): number {
+  public subscribeValue<Key extends string & keyof KeysType>(key: Key, callback: LocalStateValueCallback<KeysType>): number {
     const subscriberId = ++this.lastSubscriberId;
 
     if(!this.subscribers.hasOwnProperty(key)) {
@@ -40,7 +43,7 @@ export abstract class LocalStateBase<KeysType> {
    * @param subscriberId A subscriber ID that was given upon subscription.
    * @throws Error if invalid key/subscriberId combination was given. 
    */
-   public unsubscribe<Key extends string & keyof KeysType>(key: Key, subscriberId: number) {
+   public unsubscribeValue<Key extends string & keyof KeysType>(key: Key, subscriberId: number) {
     if(!this.subscribers.hasOwnProperty(key)) {
       throw new Error(`Trying to unsubscribe from a key "${key}" that has no subscribers`);
     }

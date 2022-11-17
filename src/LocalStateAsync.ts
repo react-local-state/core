@@ -5,16 +5,13 @@ import {
 } from './types';
 
 /**
- * Abstraction layer over settings stored locally on the client's device.
- * 
- * Using an abstraction layer allows to use different storage backends 
- * on different platforms while maintaining uniform API for the rest of 
- * the application.
+ * Abstraction layer over key/value persisted data working in the 
+ * asynchronous mode.
  */
-export class LocalStateAsync<KeysType> extends LocalStateBase<KeysType> {
-  private backend: LocalStateBackend<KeysType>;
+ export class LocalStateAsync<KeysType> extends LocalStateBase<KeysType> {
+  private backend: LocalStateBackend;
 
-  constructor(backend: LocalStateBackend<KeysType>) {
+  constructor(backend: LocalStateBackend) {
     super();
     this.backend = backend;
   }
@@ -27,7 +24,7 @@ export class LocalStateAsync<KeysType> extends LocalStateBase<KeysType> {
    */
   remove<Key extends string & keyof KeysType>(key: Key): Promise<void> {
     return this.backend.remove(key).then(() => {
-      this.notify(key, undefined);
+      this.notifyValue(key, undefined);
     });
   }
   
@@ -61,7 +58,7 @@ export class LocalStateAsync<KeysType> extends LocalStateBase<KeysType> {
    */
   set<Key extends string & keyof KeysType>(key: Key, value: KeysType[Key]): Promise<void> {
     return this.backend.set(key, value).then(() => {
-      this.notify(key, value);
+      this.notifyValue(key, value);
     });
   }
 }

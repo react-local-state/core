@@ -4,24 +4,83 @@ import {
   LocalStateMultiGetters,
 } from './types';
 
-type Cache<KeysType> = {
-  [Key in keyof KeysType]?: KeysType[Key] | undefined
-}
+export type LocalStateSyncLoadedCallback = (loading: boolean) => void
 
 /**
- * Abstraction layer over settings stored locally on the client's device.
- * 
- * Using an abstraction layer allows to use different storage backends 
- * on different platforms while maintaining uniform API for the rest of 
- * the application.
+ * Abstraction layer over key/value persisted data working in the 
+ * synchronous mode.
  */
 export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
-  private backend: LocalStateBackend<KeysType>;
-  private cache: Cache<KeysType> = {};
+  private backend: LocalStateBackend;
+  private cache = new Map<string, any>();
+  private loading: boolean = true;
+  private loadingSubscribers = new Map<number, LocalStateSyncLoadedCallback>();
+  private lastLoadingSubscriberId = 0;
 
-  constructor(backend: LocalStateBackend<KeysType>) {
+  constructor(backend: LocalStateBackend) {
     super();
-    this.backend = backend;
+    this.backend = backend;    
+  }
+
+  /**
+   * Loads all values present in the backend and stores them in the memory 
+   * cache.
+   * 
+   * Subsequent calls do not load them again until force is set to true.
+   * 
+   * @param force set to true to force reload if data was loaded
+   * @returns A promise that resolves once loading is done 
+   */
+  async load(force: boolean = false): Promise<void> {
+    if(this.loading || force) {
+      this.loading = true;
+      for(let subscriberCallback of this.loadingSubscribers.values()) {
+        subscriberCallback(true);
+      }
+      const keys = await this.backend.list();
+      const values = await this.backend.multiGet(keys);
+      for(const key of Object.keys(values)) {
+        this.cache.set(key, values[key]);
+        this.notifyValue(key, values[key]);
+      }
+      this.loading = false;
+      for(let subscriberCallback of this.loadingSubscribers.values()) {
+        subscriberCallback(false);
+      }
+    }
+  }
+
+  /**
+   * Returns information whether loading is in progress.
+   * 
+   * @returns true if loading is in progress
+   */
+  isLoading(): boolean {
+    return this.loading;
+  }
+
+  /**
+   * Subscribes to loading status changes.
+   * 
+   * @param callback callback invoked when loading status changes 
+   * @returns subscriber ID
+   */
+  subscribeLoading(callback: LocalStateSyncLoadedCallback): number {
+    const subscriberId = ++this.lastLoadingSubscriberId;
+    this.loadingSubscribers.set(subscriberId, callback);
+    return subscriberId;
+  }
+
+  /**
+   * Unsubscribes from loading status changes.
+   * 
+   * @param subscriberId subscriber ID received upon subscription 
+   */
+  unsubscribeLoading(subscriberId: number) {
+    if(!this.loadingSubscribers.has(subscriberId)) {
+      throw new Error(`Trying to unsubscribe from a loading callback with invalid subscriber ID ${subscriberId}`);
+    }
+    this.loadingSubscribers.delete(subscriberId);
   }
 
   /**
@@ -29,20 +88,20 @@ export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
    * 
    * @param key A key to be removed. 
    */
-  remove<Key extends string & keyof KeysType>(key: Key): void {
-    delete this.cache[key];
-    this.backend.remove(key);
-    this.notify(key, undefined);    
+  remove<Key extends string & keyof KeysType>(key: Key): Promise<void> {
+    this.cache.delete(key);
+    this.notifyValue(key, undefined);    
+    return this.backend.remove(key);
   }
   
   /**
    * Reads a single key.
    * 
    * @param key A key to be read. 
-   * @returns A value or undefined if key was not found.
+   * @returns A value or undefined if key was not found or not loaded yet.
    */
   get<Key extends string & keyof KeysType>(key: Key): KeysType[Key] | undefined {
-    return this.cache[key];
+    return this.cache.get(key);
   }
 
   /**
@@ -50,12 +109,13 @@ export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
    * 
    * @param keys List of keys to be read.
    * @returns An object where keys are retreived keys and values 
-   * are read values. Value is undefined if key was not found.
+   * are read values. Value is undefined if key was not found or
+   * not loaded yet.
    */
   multiGet<Key extends string & keyof KeysType>(keys: Key[]): LocalStateMultiGetters<KeysType> {
     const result: LocalStateMultiGetters<KeysType> = {};
     for(const key of keys) {
-      result[key] = this.cache[key];
+      result[key] = this.cache.get(key);
     }
     return result;
   }
@@ -67,9 +127,9 @@ export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
    * @param value Value to be stored.
    * @returns A promise with void value.
    */
-  set<Key extends string & keyof KeysType>(key: Key, value: KeysType[Key]): void {
-    this.cache[key] = value;
-    this.backend.set(key, value);
-    this.notify(key, value);
+  set<Key extends string & keyof KeysType>(key: Key, value: KeysType[Key]): Promise<void> {
+    this.cache.set(key, value);
+    this.notifyValue(key, value);
+    return this.backend.set(key, value);
   }
 }

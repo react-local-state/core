@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo, useContext ,useRef } from 'react';
+import { useEffect, useState, useMemo, useContext, useRef } from 'react';
 
 import { LocalStateMulti } from '../types';
-import { LocalState } from '../LocalStateAsync';
+import { LocalStateSync } from '../LocalStateSync';
+import { LocalStateAsync } from '../LocalStateAsync';
 
 type MaybeCleanUpFn = void | (() => void);
 
@@ -21,7 +22,7 @@ function capitalizeFirstLetter(s: string): string {
 
 /**
  * A hook that works the same as useEffect but handles properly if the 
- * dependencies are an array.
+ * dependencies are arrays.
  * 
  * @param callback useEffect-like callback.
  * @param deps An array with dependencies.
@@ -37,65 +38,132 @@ function useArrayEffect<T>(callback: () => MaybeCleanUpFn, deps: T[]) {
   useEffect(callback, [ref.current]);
 }
 
-export function useLocalStateWithContext<KeysType>(
-  context: React.Context<LocalState<KeysType>>, 
-  keys: string & keyof KeysType | (string & keyof KeysType)[],
+export function useLocalStateSyncWithContext<KeysType>(
+  context: React.Context<LocalStateSync<KeysType>>, 
+  keys: (string & keyof KeysType)[],
 ): [LocalStateMulti<KeysType>, boolean] {
   const localState = useContext(context);
-  const [loading, setLoading] = useState(true);
 
-  const keysArray = useMemo(() => 
-    Array.isArray(keys) ? keys : [keys],
-  [keys]);
-
-  const setters = useMemo(() => keysArray.reduce((acc, key) => {
+  // TODO check how useMemo treats the array
+  const setters = useMemo(() => keys.reduce((acc, key) => {
     const setterKey = `set${capitalizeFirstLetter(key)}`;
-    return {...acc, [setterKey]: async (value: any) => localState.set(key, value)}; // FIXME callback should have known value type
-  }, {}), [keysArray]);
-
-  const removers = useMemo(() => keysArray.reduce((acc, key) => {
+     // FIXME callback should have known value type
+    return {...acc, [setterKey]: async (value: any) => localState.set(key, value)};
+  }, {}), [keys]);
+  
+  // TODO check how useMemo treats the array
+  const removers = useMemo(() => keys.reduce((acc, key) => {
     const removerKey = `remove${capitalizeFirstLetter(key)}`;
     return {...acc, [removerKey]: async () => localState.remove(key)};
-  }, {}), [keysArray]);
+  }, {}), [keys]);
 
-  const defaultGetters = useMemo(() => keysArray.reduce((acc, getterKey) => {
-    return {...acc, [getterKey]: undefined};
-  }, {}), [keysArray]);
+  // TODO check how useMemo treats the array
+  // In sync we try to read values immediately as it might be cached
+  const defaultGetters = useMemo(() => keys.reduce((acc, key) => {
+    return {...acc, [key]: localState.get(key)};  
+  }, {}), [keys]);
 
-  const [value, setValue] = useState(
+  const [value, setValue] = useState<LocalStateMulti<KeysType>>(
     Object.assign({}, defaultGetters, setters, removers)
   );
 
   useArrayEffect(() => {
     const subscriberIds = new Map<keyof KeysType, number[]>();
-    for(const key of keysArray) {
+    for(const key of keys) {
       subscriberIds.set(key, []);
     }
 
-    for(const key of keysArray) {
-      const subscriberId = localState.subscribe(key, (newValue) => {
+    for(const key of keys) {
+      const subscriberId = localState.subscribeValue(key, (newValue) => {
         setValue({...value, [key] : newValue});
       });
       subscriberIds.get(key)!.push(subscriberId);
     }
 
     return () => {
-      for(const key of keysArray) {
+      for(const key of keys) {
         for(const subscriberId of subscriberIds.get(key)!) {
-          localState.unsubscribe(key, subscriberId);
+          localState.unsubscribeValue(key, subscriberId);
         }
       }
     }
-  }, keysArray);
+  }, keys); 
 
+  // In sync loading is initiated by the local state upon configuration
+  const [loading, setLoading] = useState(localState.isLoading());
+  useEffect(() => {
+    const subscriberId = localState.subscribeLoading((newLoading) => {
+      setLoading(newLoading);
+    });
+
+    return () => {
+      localState.unsubscribeLoading(subscriberId);
+    }
+  }, []);
+
+  return [value, loading]; 
+}
+
+export function useLocalStateAsyncWithContext<KeysType>(
+  context: React.Context<LocalStateAsync<KeysType>>, 
+  keys: (string & keyof KeysType)[],
+): [LocalStateMulti<KeysType>, boolean] {
+  const localState = useContext(context);
+
+  // TODO check how useMemo treats the array
+  const setters = useMemo(() => keys.reduce((acc, key) => {
+    const setterKey = `set${capitalizeFirstLetter(key)}`;
+     // FIXME callback should have known value type
+    return {...acc, [setterKey]: async (value: any) => localState.set(key, value)};
+  }, {}), [keys]);
+  
+  // TODO check how useMemo treats the array
+  const removers = useMemo(() => keys.reduce((acc, key) => {
+    const removerKey = `remove${capitalizeFirstLetter(key)}`;
+    return {...acc, [removerKey]: async () => localState.remove(key)};
+  }, {}), [keys]);
+
+  // In async getters are undefined by default
+  const defaultGetters = useMemo(() => keys.reduce((acc, key) => {
+    return {...acc, [key]: undefined}; 
+  }, {}), [keys]);
+
+  const [value, setValue] = useState<LocalStateMulti<KeysType>>(
+    Object.assign({}, defaultGetters, setters, removers)
+  );
+
+  useArrayEffect(() => {
+    const subscriberIds = new Map<keyof KeysType, number[]>();
+    for(const key of keys) {
+      subscriberIds.set(key, []);
+    }
+
+    for(const key of keys) {
+      const subscriberId = localState.subscribeValue(key, (newValue) => {
+        setValue({...value, [key] : newValue});
+      });
+      subscriberIds.get(key)!.push(subscriberId);
+    }
+
+    return () => {
+      for(const key of keys) {
+        for(const subscriberId of subscriberIds.get(key)!) {
+          localState.unsubscribeValue(key, subscriberId);
+        }
+      }
+    }
+  }, keys);
+
+  // In async loading is initiated by hook 
+  const [loading, setLoading] = useState(true);
   useArrayEffect(() => {
     (async () => {
       setLoading(true);
-      const readValues = await localState.multiGet(keysArray);
+      const readValues = await localState.multiGet(keys);
       setValue(Object.assign({}, readValues, setters, removers));
       setLoading(false);
     })();
-  }, keysArray);
+  }, keys);
 
   return [value, loading];  
 }
