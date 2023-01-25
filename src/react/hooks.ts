@@ -41,7 +41,7 @@ function useArrayEffect<T>(callback: () => MaybeCleanUpFn, deps: T[]) {
 export function useLocalStateSyncWithContext<KeysType>(
   context: React.Context<LocalStateSync<KeysType>>, 
   keys: (string & keyof KeysType)[],
-): [LocalStateMulti<KeysType>, boolean] {
+): [LocalStateMulti<KeysType>, boolean, LocalStateSync<KeysType>] {
   const localState = useContext(context);
 
   // TODO check how useMemo treats the array
@@ -101,13 +101,13 @@ export function useLocalStateSyncWithContext<KeysType>(
     }
   }, []);
 
-  return [value, loading]; 
+  return [value, loading, localState]; 
 }
 
 export function useLocalStateAsyncWithContext<KeysType>(
   context: React.Context<LocalStateAsync<KeysType>>, 
   keys: (string & keyof KeysType)[],
-): [LocalStateMulti<KeysType>, boolean] {
+): [LocalStateMulti<KeysType>, boolean, LocalStateAsync<KeysType>] {
   const localState = useContext(context);
 
   // TODO check how useMemo treats the array
@@ -165,5 +165,5 @@ export function useLocalStateAsyncWithContext<KeysType>(
     })();
   }, keys);
 
-  return [value, loading];  
+  return [value, loading, localState];
 }
