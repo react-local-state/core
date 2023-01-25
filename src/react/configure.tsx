@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { createContext, Key } from 'react';
 
 import { LocalStateMulti } from '../types';
 import { LocalStateSync } from '../LocalStateSync';
@@ -35,15 +35,18 @@ export function configureLocalStateAsync<KeysType>(backend: LocalStateBackend) {
     </LocalStateContext.Provider>
   );
 
-  const useLocalState = (keys: (string & keyof KeysType)[]): [LocalStateMulti<KeysType>, boolean] => {
+  const useLocalState = (keys: (string & keyof KeysType)[]): [LocalStateMulti<KeysType>, boolean, LocalStateAsync<KeysType>] => {
     return useLocalStateAsyncWithContext<KeysType>(LocalStateContext, keys);
   }
 
   return {
     LocalStateProvider,
     useLocalState,
+    localState,
+    LocalStateContext,
   };
 }
+
 
 /**
  * A function that configures the local state to use a given backend
@@ -76,12 +79,14 @@ export function configureLocalStateAsync<KeysType>(backend: LocalStateBackend) {
     </LocalStateContext.Provider>
   );
 
-  const useLocalState = (keys: (string & keyof KeysType)[]): [LocalStateMulti<KeysType>, boolean] => {
+  const useLocalState = (keys: (string & keyof KeysType)[]): [LocalStateMulti<KeysType>, boolean, LocalStateSync<KeysType>] => {
     return useLocalStateSyncWithContext<KeysType>(LocalStateContext, keys);
   }
 
   return {
     LocalStateProvider,
     useLocalState,
+    localState,
+    LocalStateContext,
   };
 }
