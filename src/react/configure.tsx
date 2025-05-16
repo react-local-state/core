@@ -1,4 +1,4 @@
-import { createContext, JSX } from 'react';
+import { createContext, ReactNode } from 'react';
 
 import { LocalStateMulti } from '../types';
 import { LocalStateSync } from '../LocalStateSync';
@@ -29,7 +29,7 @@ export function configureLocalStateAsync<KeysType>(backend: LocalStateBackend) {
   const localState = new LocalStateAsync<KeysType>(backend);
   const LocalStateContext = createContext<LocalStateAsync<KeysType>>(localState);
 
-  const LocalStateProvider = ({ children }: { children: JSX.Element }): JSX.Element => (
+  const LocalStateProvider = ({ children }: { children: ReactNode }): ReactNode => (
     <LocalStateContext.Provider value={localState}>
       {children}
     </LocalStateContext.Provider>
@@ -73,7 +73,7 @@ export function configureLocalStateAsync<KeysType>(backend: LocalStateBackend) {
   localState.load();
   const LocalStateContext = createContext<LocalStateSync<KeysType>>(localState);
 
-  const LocalStateProvider = ({ children }: { children: JSX.Element }): JSX.Element => (
+  const LocalStateProvider = ({ children }: { children: ReactNode }): ReactNode => (
     <LocalStateContext.Provider value={localState}>
       {children}
     </LocalStateContext.Provider>
