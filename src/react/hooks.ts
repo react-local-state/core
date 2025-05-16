@@ -64,7 +64,7 @@ export function useLocalStateSyncWithContext<KeysType>(
   }, {}), [keys]);
 
   const [value, setValue] = useState<LocalStateMulti<KeysType>>(
-    Object.assign({}, defaultGetters, setters, removers)
+    Object.assign({}, defaultGetters, setters, removers)  as LocalStateMulti<KeysType>
   );
 
   useArrayEffect(() => {
@@ -129,7 +129,7 @@ export function useLocalStateAsyncWithContext<KeysType>(
   }, {}), [keys]);
 
   const [value, setValue] = useState<LocalStateMulti<KeysType>>(
-    Object.assign({}, defaultGetters, setters, removers)
+    Object.assign({}, defaultGetters, setters, removers) as LocalStateMulti<KeysType>
   );
 
   useArrayEffect(() => {
@@ -160,7 +160,7 @@ export function useLocalStateAsyncWithContext<KeysType>(
     (async () => {
       setLoading(true);
       const readValues = await localState.multiGet(keys);
-      setValue(Object.assign({}, readValues, setters, removers));
+      setValue(Object.assign({}, readValues, setters, removers) as LocalStateMulti<KeysType>);
       setLoading(false);
     })();
   }, keys);
