@@ -41,7 +41,7 @@ export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
       const values = await this.backend.multiGet(keys);
       for(const key of Object.keys(values)) {
         this.cache.set(key, values[key]);
-        this.notifyValue(key, values[key]);
+        this.notifyValue(key as any, values[key]);
       }
       this.loading = false;
       for(let subscriberCallback of this.loadingSubscribers.values()) {
@@ -113,7 +113,7 @@ export class LocalStateSync<KeysType> extends LocalStateBase<KeysType> {
    * not loaded yet.
    */
   multiGet<Key extends string & keyof KeysType>(keys: Key[]): LocalStateMultiGetters<KeysType> {
-    const result: LocalStateMultiGetters<KeysType> = {};
+    const result: LocalStateMultiGetters<KeysType> = {} as LocalStateMultiGetters<KeysType>;
     for(const key of keys) {
       result[key] = this.cache.get(key);
     }
