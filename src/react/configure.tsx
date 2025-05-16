@@ -1,4 +1,4 @@
-import { createContext, Key } from 'react';
+import { createContext, JSX } from 'react';
 
 import { LocalStateMulti } from '../types';
 import { LocalStateSync } from '../LocalStateSync';
